@@ -142,7 +142,7 @@ const Chat = () => {
 					</button>
 				</div>
 				<div
-					className="text-sm text-center mt-2 text-zinc-700 animate-fade-in"
+					className="text-sm text-center text-zinc-700 animate-fade-in"
 					style={{
 						animationDelay: "0.2s",
 					}}

@@ -14,23 +14,35 @@ export const AuthProvider = ({ children }) => {
 	useEffect(() => {
 		const checkLoggedIn = async () => {
 			try {
-				if (Cookies.get("token")) {
+				const token = Cookies.get("token");
+				if (token) {
+					// Configure axios to use the token for all requests
+					axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+					
 					const res = await axios.get("/api/auth/me");
-					setUser(res.data.data);
+					if (res.data?.data) {
+						setUser(res.data.data);
 
-					// Conectar ao socket com token
-					socket.auth = { token: Cookies.get("token") };
-					socket.connect();
+						// Conectar ao socket com token
+						socket.auth = { token };
+						socket.connect();
+					}
 				}
 			} catch (err) {
 				console.error("Erro ao verificar autenticação:", err);
+				// Clear any invalid token
 				Cookies.remove("token");
+				delete axios.defaults.headers.common["Authorization"];
 			} finally {
 				setLoading(false);
 			}
 		};
 
 		checkLoggedIn();
+		
+		// Add event listener for focus to recheck authentication when tab becomes active
+		window.addEventListener('focus', checkLoggedIn);
+		return () => window.removeEventListener('focus', checkLoggedIn);
 	}, []);
 
 	// Registrar usuário
@@ -44,11 +56,17 @@ export const AuthProvider = ({ children }) => {
 				password,
 			});
 
+			// Set Authorization header for subsequent requests
+			const token = res.data.token || Cookies.get("token");
+			if (token) {
+				axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+			}
+			
 			// Salvar token no cookie (já feito pelo servidor)
 			setUser(res.data.user);
 
 			// Conectar ao socket com token
-			socket.auth = { token: res.data.token };
+			socket.auth = { token };
 			socket.connect();
 
 			return true;
@@ -73,11 +91,17 @@ export const AuthProvider = ({ children }) => {
 				password,
 			});
 
+			// Set Authorization header for subsequent requests
+			const token = res.data.token || Cookies.get("token");
+			if (token) {
+				axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+			}
+			
 			// Salvar token no cookie (já feito pelo servidor)
 			setUser(res.data.user);
 
 			// Conectar ao socket com token
-			socket.auth = { token: res.data.token };
+			socket.auth = { token };
 			socket.connect();
 
 			return true;
@@ -96,6 +120,9 @@ export const AuthProvider = ({ children }) => {
 
 			// Remover token do cookie
 			Cookies.remove("token");
+			
+			// Remove Authorization header
+			delete axios.defaults.headers.common["Authorization"];
 
 			// Desconectar socket
 			socket.emit("user disconnecting");
