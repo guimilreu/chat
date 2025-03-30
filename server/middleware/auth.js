@@ -15,7 +15,7 @@ exports.protect = async (req, res, next) => {
 	) {
 		// Obter token do header Authorization
 		token = req.headers.authorization.split(" ")[1];
-	} else if (req.cookies.token) {
+	} else if (req.cookies && req.cookies.token) {
 		// Obter token dos cookies
 		token = req.cookies.token;
 	}
@@ -34,6 +34,16 @@ exports.protect = async (req, res, next) => {
 
 		// Adicionar usuário decodificado à requisição
 		req.user = decoded;
+		
+		// Verificar se o usuário existe no banco
+		const userExists = await User.exists({ _id: decoded.id });
+		if (!userExists) {
+			return res.status(401).json({
+				success: false,
+				message: "Usuário não encontrado",
+			});
+		}
+		
 		next();
 	} catch (error) {
 		console.error("Erro ao verificar token:", error);
@@ -47,15 +57,32 @@ exports.protect = async (req, res, next) => {
 // Middleware para verificar token em socket.io
 exports.verifySocketToken = async (socket, next) => {
 	try {
-		const token =
-			socket.handshake.auth.token ||
-			socket.handshake.headers.authorization?.split(" ")[1] ||
-			socket.handshake.headers.cookie?.split("token=")[1]?.split(";")[0];
+		// Tentar extrair o token de várias fontes possíveis
+		let token;
+		
+		// Da autenticação
+		if (socket.handshake.auth && socket.handshake.auth.token) {
+			token = socket.handshake.auth.token;
+		} 
+		// Dos headers
+		else if (socket.handshake.headers.authorization && 
+				 socket.handshake.headers.authorization.startsWith("Bearer")) {
+			token = socket.handshake.headers.authorization.split(" ")[1];
+		} 
+		// Dos cookies como string
+		else if (socket.handshake.headers.cookie) {
+			const cookies = socket.handshake.headers.cookie.split(';');
+			const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+			if (tokenCookie) {
+				token = tokenCookie.split('=')[1];
+			}
+		}
 
 		if (!token) {
 			return next(new Error("Autenticação necessária"));
 		}
 
+		// Verificar o token
 		const decoded = jwt.verify(token, JWT_SECRET);
 
 		// Encontrar usuário pelo ID

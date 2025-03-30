@@ -18,9 +18,10 @@ const sendTokenResponse = (user, statusCode, res) => {
 	// Configuração do cookie
 	const cookieOptions = {
 		expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 dias
-		httpOnly: true,
+		httpOnly: false, // Permitir acesso via JavaScript
 		secure: process.env.NODE_ENV === "production", // Apenas HTTPS em produção
-		sameSite: "strict",
+		sameSite: "lax", // Menos restritivo para funcionar com recargas de página
+		path: "/", // Disponível em todo o site
 	};
 
 	// Enviar cookie com token
@@ -113,9 +114,20 @@ exports.login = async (req, res, next) => {
 exports.getMe = async (req, res, next) => {
 	try {
 		const user = await User.findById(req.user.id).select("-password");
+
+		if (!user) {
+			return res.status(404).json({
+				success: false,
+				message: "Usuário não encontrado",
+			});
+		}
+
 		res.status(200).json({
 			success: true,
-			data: user,
+			data: {
+				id: user._id,
+				username: user.username,
+			},
 		});
 	} catch (error) {
 		console.error("Erro ao obter usuário atual:", error);
@@ -128,9 +140,10 @@ exports.getMe = async (req, res, next) => {
 
 // Logout (limpar cookie)
 exports.logout = (req, res, next) => {
-	res.cookie("token", "none", {
+	res.cookie("token", "", {
 		expires: new Date(Date.now() + 10 * 1000), // Expira em 10 segundos
-		httpOnly: true,
+		httpOnly: false,
+		path: "/",
 	});
 
 	res.status(200).json({
