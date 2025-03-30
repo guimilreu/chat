@@ -10,37 +10,42 @@ export const AuthProvider = ({ children }) => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
+	const [profileUpdateSuccess, setProfileUpdateSuccess] = useState(false);
 
 	// Verificar se o usuário já está autenticado ao carregar a página
 	useEffect(() => {
 		async function loadUserFromCookie() {
 			console.log("Verificando autenticação...");
 			setLoading(true);
-			
+
 			try {
 				// Verifica se existe um token nos cookies
 				const token = Cookies.get("token");
 				console.log("Token encontrado:", !!token);
-				
+
 				if (!token) {
-					console.log("Nenhum token encontrado, usuário não autenticado");
+					console.log(
+						"Nenhum token encontrado, usuário não autenticado"
+					);
 					setIsAuthenticated(false);
 					setUser(null);
 					setLoading(false);
 					return;
 				}
-				
+
 				// Configura o token para todas as requisições
-				axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-				
+				axios.defaults.headers.common[
+					"Authorization"
+				] = `Bearer ${token}`;
+
 				// Conecta ao socket com o token
 				socket.auth = { token };
 				socket.connect();
-				
+
 				// Busca informações do usuário
 				const response = await axios.get("/api/auth/me");
 				console.log("Resposta da API:", response.data);
-				
+
 				if (response.data.success && response.data.data) {
 					console.log("Usuário autenticado:", response.data.data);
 					setUser(response.data.data);
@@ -83,15 +88,17 @@ export const AuthProvider = ({ children }) => {
 
 			if (res.data.success && res.data.token) {
 				// Define o token nos cookies manualmente para garantir
-				Cookies.set("token", res.data.token, { 
+				Cookies.set("token", res.data.token, {
 					expires: 3, // 3 dias
-					secure: process.env.NODE_ENV === "production", 
-					sameSite: "strict"
+					secure: process.env.NODE_ENV === "production",
+					sameSite: "strict",
 				});
-				
+
 				// Define o header de autorização
-				axios.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
-				
+				axios.defaults.headers.common[
+					"Authorization"
+				] = `Bearer ${res.data.token}`;
+
 				// Atualiza o estado
 				setUser(res.data.user);
 				setIsAuthenticated(true);
@@ -107,7 +114,9 @@ export const AuthProvider = ({ children }) => {
 		} catch (err) {
 			console.error("Erro de registro:", err);
 			setError(
-				err.response?.data?.message || err.message || "Erro ao registrar usuário"
+				err.response?.data?.message ||
+					err.message ||
+					"Erro ao registrar usuário"
 			);
 			return false;
 		} finally {
@@ -128,15 +137,17 @@ export const AuthProvider = ({ children }) => {
 
 			if (res.data.success && res.data.token) {
 				// Define o token nos cookies manualmente para garantir
-				Cookies.set("token", res.data.token, { 
+				Cookies.set("token", res.data.token, {
 					expires: 3, // 3 dias
-					secure: process.env.NODE_ENV === "production", 
-					sameSite: "strict"
+					secure: process.env.NODE_ENV === "production",
+					sameSite: "strict",
 				});
-				
+
 				// Define o header de autorização
-				axios.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
-				
+				axios.defaults.headers.common[
+					"Authorization"
+				] = `Bearer ${res.data.token}`;
+
 				// Atualiza o estado
 				setUser(res.data.user);
 				setIsAuthenticated(true);
@@ -151,7 +162,11 @@ export const AuthProvider = ({ children }) => {
 			}
 		} catch (err) {
 			console.error("Erro de login:", err);
-			setError(err.response?.data?.message || err.message || "Credenciais inválidas");
+			setError(
+				err.response?.data?.message ||
+					err.message ||
+					"Credenciais inválidas"
+			);
 			return false;
 		} finally {
 			setLoading(false);
@@ -162,22 +177,24 @@ export const AuthProvider = ({ children }) => {
 	const logout = async () => {
 		try {
 			// Chama a API de logout (mesmo se falhar, continua o processo de logout)
-			await axios.get("/api/auth/logout").catch(err => console.error("Erro na API de logout:", err));
+			await axios
+				.get("/api/auth/logout")
+				.catch((err) => console.error("Erro na API de logout:", err));
 
 			// Desconecta socket
 			socket.emit("user disconnecting");
 			socket.disconnect();
-			
+
 			// Remove token do cookie
 			Cookies.remove("token");
-			
+
 			// Remove Authorization header
 			delete axios.defaults.headers.common["Authorization"];
 
 			// Limpa estado
 			setUser(null);
 			setIsAuthenticated(false);
-			
+
 			return true;
 		} catch (err) {
 			console.error("Erro ao fazer logout:", err);
@@ -190,11 +207,62 @@ export const AuthProvider = ({ children }) => {
 		try {
 			const token = Cookies.get("token");
 			if (!token) return false;
-			
+
 			const res = await axios.get("/api/auth/me");
 			return !!(res.data?.success && res.data?.data);
 		} catch (err) {
 			return false;
+		}
+	};
+
+	// Atualizar avatar
+	const updateAvatar = async (avatarUrl) => {
+		try {
+			// Apenas atualiza o estado do usuário localmente
+			// (a operação de upload já foi feita no componente)
+			setUser((prevUser) => ({
+				...prevUser,
+				avatarUrl,
+			}));
+
+			setProfileUpdateSuccess(true);
+			setTimeout(() => setProfileUpdateSuccess(false), 3000);
+
+			return true;
+		} catch (error) {
+			console.error("Erro ao atualizar avatar:", error);
+			return false;
+		}
+	};
+
+	// Atualizar senha
+	const updatePassword = async (currentPassword, newPassword) => {
+		try {
+			setLoading(true);
+			setError(null);
+
+			const res = await axios.post("/api/auth/update-password", {
+				currentPassword,
+				newPassword,
+			});
+
+			if (res.data.success) {
+				setProfileUpdateSuccess(true);
+				setTimeout(() => setProfileUpdateSuccess(false), 3000);
+				return true;
+			} else {
+				throw new Error(res.data.message || "Erro ao atualizar senha");
+			}
+		} catch (err) {
+			console.error("Erro ao atualizar senha:", err);
+			setError(
+				err.response?.data?.message ||
+					err.message ||
+					"Erro ao atualizar senha"
+			);
+			return false;
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -209,6 +277,9 @@ export const AuthProvider = ({ children }) => {
 				logout,
 				checkAuth,
 				isAuthenticated,
+				updateAvatar,
+				updatePassword,
+				profileUpdateSuccess,
 			}}
 		>
 			{children}

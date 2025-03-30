@@ -6,6 +6,7 @@ import Chat from "@/components/Chat";
 import ChatActions from "@/components/ChatActions";
 import ChatList from "@/components/ChatList";
 import LoadingScreen from "@/components/LoadingScreen";
+import ProfileModal from "@/components/ProfileModal";
 import { CreateChatModal, JoinChatModal } from "@/components/ChatModals";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,7 @@ function App() {
 	const [activeChat, setActiveChat] = useState(null); // null = public chat, object = specific chat
 	const [createChatModalOpen, setCreateChatModalOpen] = useState(false);
 	const [joinChatModalOpen, setJoinChatModalOpen] = useState(false);
+	const [profileModalOpen, setProfileModalOpen] = useState(false);
 
 	// Log para debug da autenticação
 	useEffect(() => {
@@ -108,7 +110,12 @@ function App() {
 											>
 												<div className="flex items-center gap-2">
 													<Avatar className="h-6 w-6">
-														<AvatarImage src="" />
+														<AvatarImage
+															src={
+																user?.avatarUrl ||
+																""
+															}
+														/>
 														<AvatarFallback className="bg-blue-500 text-white text-xs">
 															{user?.username
 																?.substring(
@@ -133,7 +140,12 @@ function App() {
 												Minha conta
 											</DropdownMenuLabel>
 											<DropdownMenuSeparator />
-											<DropdownMenuItem className="cursor-pointer flex gap-2">
+											<DropdownMenuItem
+												onClick={() =>
+													setProfileModalOpen(true)
+												}
+												className="cursor-pointer flex gap-2"
+											>
 												<User className="h-4 w-4" />
 												Meu perfil
 											</DropdownMenuItem>
@@ -181,6 +193,12 @@ function App() {
 				isOpen={joinChatModalOpen}
 				onClose={() => setJoinChatModalOpen(false)}
 				onSuccess={handleChatJoined}
+			/>
+
+			{/* Modal de perfil */}
+			<ProfileModal
+				isOpen={profileModalOpen}
+				onClose={() => setProfileModalOpen(false)}
 			/>
 		</>
 	);

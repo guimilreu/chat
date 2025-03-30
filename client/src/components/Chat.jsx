@@ -163,13 +163,7 @@ const Chat = ({ activeChat = null, onBackClick }) => {
 	return (
 		<>
 			<div className="flex flex-col w-full pb-4 border-b border-black/5">
-				<div className="flex items-center justify-between w-full">
-					<button
-						onClick={onBackClick}
-						className="animate-fade-in outline-none rounded-full w-10 h-10 border border-white/40 bg-white/30 flex items-center justify-center transition hover:bg-white/70 cursor-pointer duration-300"
-					>
-						<ChevronLeft className="w-4 h-4 text-zinc-800" />
-					</button>
+				<div className="flex items-center justify-center w-full">
 					<div
 						className="text-2xl font-medium animate-fade-in flex items-center gap-2"
 						style={{
@@ -187,14 +181,6 @@ const Chat = ({ activeChat = null, onBackClick }) => {
 							</Badge>
 						)}
 					</div>
-					<button
-						style={{
-							animationDelay: "0.2s",
-						}}
-						className="animate-fade-in outline-none rounded-full w-10 h-10 border border-white/40 bg-white/30 flex items-center justify-center transition hover:bg-white/70 cursor-pointer duration-300"
-					>
-						<X className="w-4 h-4 text-zinc-800" />
-					</button>
 				</div>
 				<div
 					className="text-sm text-center text-zinc-700 animate-fade-in flex flex-col items-center gap-1"

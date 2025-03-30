@@ -7,6 +7,7 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 const authRoutes = require("./routes/authRoutes");
 const { verifySocketToken } = require("./middleware/auth");
 const chatController = require("./controllers/chatController");
@@ -43,6 +44,9 @@ app.use((req, res, next) => {
 	console.log(`${req.method} ${req.url}`);
 	next();
 });
+
+// Servir arquivos estáticos da pasta uploads
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Rotas de autenticação
 app.use("/api/auth", authRoutes);
